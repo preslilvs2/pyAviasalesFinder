@@ -104,16 +104,3 @@ class FindMeTickets():
 			tickets_list.append(tickets["origin_city"] + " - " + tickets["destination_city"] + " " "за" + " " + "<a href='https://www.aviasales.ru" + tickets["link"] + "'>" + str(tickets["price"])+ "</a>" +"р." + "(" + tickets["departure_at_date"] + ")" + "\n") 
 			tickets_string = " ".join(tickets_list)
 		return(tickets_string)
-
-#  def new_method(self):
-#      return read_data_files()
-
-
-# air_tickets = FindMeAirTickets(url, header=header, token=settings["tokens"]["aviasales"], origin="ASF", limit=limit)
-# message = air_tickets.normalize_tickets_data()
-# if len(message) > MAX_LENGTH_MESSAGE:
-# 	splitted_text = util.smart_split(message, chars_per_string=MAX_LENGTH_MESSAGE)
-# 	for text in splitted_text:
-# 		bot.send_message("@MySupport_Tickets_Group", text)
-# else: 
-# 	bot.send_message("@MySupport_Tickets_Group", message)
