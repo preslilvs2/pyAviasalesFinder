@@ -2,7 +2,6 @@ from tarfile import ENCODING
 import os
 import requests
 import json
-import re
 from datetime import datetime
 import configparser
 import wget
@@ -12,26 +11,31 @@ class FindMeTickets():
 	def __init__(self, **kwargs):
 		self.abs_file_path = os.path.abspath(__file__)
 		self.path, self.filename = os.path.split(self.abs_file_path)
+		if os.path.exists(self.path+"/settings.ini") == False:
+			with open(self.path+"/settings.ini", "w", encoding="utf-8") as file:
+				file.write("[tokens]\n#insert your aviasales partner token\naviasales =")
+				pass
+
 		self.settings = configparser.ConfigParser()
 		self.settings.read(self.path+"/settings.ini")
+		if len(self.settings["tokens"]["aviasales"]) <= 0:
+			print("Укажите в файле settings.ini корректный ключ для переменной aviasales")
+			exit()
 		self.token = self.settings["tokens"]["aviasales"]
-		self.lang = "ru"
 		self.url = "https://api.travelpayouts.com/aviasales/v3/prices_for_dates"
 		self.kwargs = {}
 		self.kwargs.update({
 			"header" : "Accept-Encoding: gzip, deflate",
 			"token" : self.token,
 			"currency" : "rub", #USD, EUR, RUB
-			"locale" : self.lang,
+			"locale" : "ru",
 			"limit" : 10,
 			"period_type" : "month"
 		})
 		self.kwargs.update(kwargs)
 
-	#вызов функции get_tickets_data() по заданным параметрам
-	# tickets_data = get_tickets_data()
+	#скачивание файлов данных если их нет в папке с проектом
 	def read_data_files(self):
-			#скачивание файлов данных если их нет в папке с проектом
 		if os.path.exists(self.path+"/airlines.json") == False:
 			wget.download(f"http://api.travelpayouts.com/data/{self.lang}/airlines.json", self.path+"/airlines.json")
 		if os.path.exists(self.path+"/airports.json") == False:
@@ -65,42 +69,35 @@ class FindMeTickets():
 			# print(airlines_dict["SU"])
 		return(data_files_dict)
 
-	# функция нормализации части полученных данных для лучшего восприятия пользователями
-	# и передача данных в список tickets_list для последующей обработки
-	# data = read_data_files()
-
-		#функция получения данных из API Aviasales.ru по заданным параметрам
+	#функция получения данных из API Aviasales.ru по заданным параметрам
 	def get_ticket_data(self):
 		tickets_data = requests.get(self.url, self.kwargs).json()
-		data_files = self.read_data_files()
-		tickets_list = []
-		for tickets in tickets_data["data"]: 
-			# print(airports_dict[tickets["origin"]]["city_code"])
-			tickets["departure_at_date"] = datetime.strptime(tickets["departure_at"],"%Y-%m-%dT%H:%M:%S%z")
-			tickets["departure_at_date"] = datetime.strftime(tickets["departure_at_date"], "%d.%m.%y")
-			if tickets["origin_airport"] == data_files["airport"][tickets["origin_airport"]]["code"]:
-				# pass
-				tickets["origin_airport"] = data_files["airport"][tickets["origin_airport"]]["name"]
-			if tickets["destination_airport"] == data_files["airport"][tickets["destination_airport"]]["code"]:
-				# pass
-				tickets["destination_airport"] = data_files["airport"][tickets["destination_airport"]]["name"]
-			if tickets["origin"] == data_files["city"][tickets["origin"]]["code"]:
-				# pass
-				tickets["origin_city"] = data_files["city"][tickets["origin"]]["cases"]["su"]
-				tickets["origin_country_code"] = data_files["city"][tickets["origin"]]["country_code"]
-			if tickets["destination"] == data_files["city"][tickets["destination"]]["code"]:
-				# pass
-				tickets["destination_city"] = data_files["city"][tickets["destination"]]["cases"]["su"]
-				tickets["destination_country_code"] = data_files["city"][tickets["destination"]]["country_code"]
-			if tickets["airline"] == data_files["airline"][tickets["airline"]]["code"]:
-
-
-				# pass
-				if data_files["airline"][tickets["airline"]]["name"] != None:
-					tickets["airline"] = data_files["airline"][tickets["airline"]]["name"]
-				else:
-					tickets["airline"] = data_files["airline"][tickets["airline"]]["name_translations"]["en"]
-			# if tickets["destination_country_code"] != "RU":
-			tickets_list.append(tickets["origin_city"] + " - " + tickets["destination_city"] + " " "за" + " " + "<a href='https://www.aviasales.ru" + tickets["link"] + "'>" + str(tickets["price"])+ "</a>" +"р." + "(" + tickets["departure_at_date"] + ")" + "\n") 
-			tickets_string = " ".join(tickets_list)
-		return(tickets_string)
+		if "error" not in  tickets_data:
+			data_files = self.read_data_files()
+			tickets_list = []
+			for tickets in tickets_data["data"]: 
+				tickets["departure_at_date"] = datetime.strptime(tickets["departure_at"],"%Y-%m-%dT%H:%M:%S%z")
+				tickets["departure_at_date"] = datetime.strftime(tickets["departure_at_date"], "%d.%m.%y")
+				if tickets["origin_airport"] == data_files["airport"][tickets["origin_airport"]]["code"]:
+					tickets["origin_airport"] = data_files["airport"][tickets["origin_airport"]]["name"]
+				if tickets["destination_airport"] == data_files["airport"][tickets["destination_airport"]]["code"]:
+					tickets["destination_airport"] = data_files["airport"][tickets["destination_airport"]]["name"]
+				if tickets["origin"] == data_files["city"][tickets["origin"]]["code"]:
+					tickets["origin_city"] = data_files["city"][tickets["origin"]]["cases"]["su"]
+					tickets["origin_country_code"] = data_files["city"][tickets["origin"]]["country_code"]
+				if tickets["destination"] == data_files["city"][tickets["destination"]]["code"]:
+					tickets["destination_city"] = data_files["city"][tickets["destination"]]["cases"]["su"]
+					tickets["destination_country_code"] = data_files["city"][tickets["destination"]]["country_code"]
+				if tickets["airline"] == data_files["airline"][tickets["airline"]]["code"]:
+					if data_files["airline"][tickets["airline"]]["name"] != None:
+						tickets["airline"] = data_files["airline"][tickets["airline"]]["name"]
+					else:
+						tickets["airline"] = data_files["airline"][tickets["airline"]]["name_translations"]["en"]
+				tickets_list.append(tickets["origin_city"] + " - " + tickets["destination_city"] + " " + "<a href='https://www.aviasales.ru" + tickets["link"] + "'>" + str(tickets["price"])+ "</a>" + self.kwargs["currency"] + " " + "(" + tickets["departure_at_date"] + ")" + "\n") 
+				tickets_string = " ".join(tickets_list)
+			return(tickets_string)
+		else:
+			# print("Ваш токен для API Avasales указан не верно или не валидный, проверьте указанный токен в личном кабинете https://app.travelpayouts.com/all_tools")
+			# print("status: ", tickets_data["status"]," ", tickets_data["error"])
+			print(tickets_data)
+		
