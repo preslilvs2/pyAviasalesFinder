@@ -1,5 +1,9 @@
 # pyAviasalesFinder
 
+## Требования
+- Python 3.7 или старше
+- Установленные библиотеки os, requests, json, re, datetime, configparser, wget. Установить недостающую библиотеку можно например так ``` pip install datetime ```
+
 ## Пример работы с классом
 
 ```
