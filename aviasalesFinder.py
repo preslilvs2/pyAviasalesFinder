@@ -14,8 +14,6 @@ class FindMeTickets():
 		if os.path.exists(self.path+"/settings.ini") == False:
 			with open(self.path+"/settings.ini", "w", encoding="utf-8") as file:
 				file.write("[tokens]\n#insert your aviasales partner token\naviasales =")
-				pass
-
 		self.settings = configparser.ConfigParser()
 		self.settings.read(self.path+"/settings.ini")
 		if len(self.settings["tokens"]["aviasales"]) <= 0:
@@ -27,14 +25,15 @@ class FindMeTickets():
 		self.kwargs.update({
 			"header" : "Accept-Encoding: gzip, deflate",
 			"token" : self.token,
-			"currency" : "rub", #USD, EUR, RUB
-			"locale" : "ru",
-			"limit" : 10,
-			"period_type" : "month"
+			"currency" : "usd", #usd, eur, rub
+			"locale" : "en", #for example: en, it, de. More examples https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
+			"limit" : 10, # from 0 to 1000
+			"period_type" : "month" #day, month, year
+			#see more parameters https://support.travelpayouts.com/hc/en-us/articles/203956163
 		})
 		self.kwargs.update(kwargs)
 
-	#скачивание файлов данных если их нет в папке с проектом
+	#downloading data files if they are not in the project folder
 	def read_data_files(self):
 		if os.path.exists(self.path+"/airlines.json") == False:
 			wget.download(f"http://api.travelpayouts.com/data/{self.lang}/airlines.json", self.path+"/airlines.json")
@@ -44,7 +43,7 @@ class FindMeTickets():
 			wget.download(f"http://api.travelpayouts.com/data/{self.lang}/cities.json", self.path+"/cities.json")
 
 		data_files_dict = {}
-		#получение объекта с данными о городах где есть аэропорты
+		#getting an object with data about cities where there are airports
 		with open(self.path+"/cities.json", "r", encoding="utf-8") as file:
 			json_data_cities = json.loads(file.read())
 			data_files_dict.update({"city" : {}})
@@ -52,7 +51,7 @@ class FindMeTickets():
 				data_files_dict["city"].update({cities["code"] : cities})
 				# print(cities)
 
-		#получение объекта с данными о аэропортах
+		#getting an object with data about airports
 		with open(self.path+"/airports.json", "r", encoding="utf-8") as file:
 			json_data_airports = json.loads(file.read())
 			data_files_dict.update({"airport" : {}})
@@ -60,7 +59,7 @@ class FindMeTickets():
 				data_files_dict["airport"].update({airports["code"] : airports})
 			# print(airports_dict)
 
-		#получение объекта с данными о авиокомпаниях
+		#getting an object with data about airlines
 		with open(self.path+"/airlines.json", "r", encoding="utf-8") as file:
 			json_data_airlines = json.loads(file.read())
 			data_files_dict.update({"airline" : {}})
@@ -69,7 +68,7 @@ class FindMeTickets():
 			# print(airlines_dict["SU"])
 		return(data_files_dict)
 
-	#функция получения данных из API Aviasales.ru по заданным параметрам
+	#function for obtaining data from the Aviasales.ru API according to the specified parameters
 	def get_ticket_data(self):
 		tickets_data = requests.get(self.url, self.kwargs).json()
 		if "error" not in  tickets_data:
@@ -97,7 +96,5 @@ class FindMeTickets():
 				tickets_string = " ".join(tickets_list)
 			return(tickets_string)
 		else:
-			# print("Ваш токен для API Avasales указан не верно или не валидный, проверьте указанный токен в личном кабинете https://app.travelpayouts.com/all_tools")
-			# print("status: ", tickets_data["status"]," ", tickets_data["error"])
 			print(tickets_data)
 		
