@@ -17,7 +17,7 @@ class FindMeTickets():
 		self.settings = configparser.ConfigParser()
 		self.settings.read(self.path+"/settings.ini")
 		if len(self.settings["tokens"]["aviasales"]) <= 0:
-			print("Укажите в файле settings.ini корректный ключ для переменной aviasales")
+			print("Insert the correct key for the aviasales variable in the settings.ini file")
 			exit()
 		self.token = self.settings["tokens"]["aviasales"]
 		self.url = "https://api.travelpayouts.com/aviasales/v3/prices_for_dates"
@@ -75,6 +75,8 @@ class FindMeTickets():
 			data_files = self.read_data_files()
 			tickets_list = []
 			for tickets in tickets_data["data"]: 
+				tickets["link"] = "https://www.aviasales.ru" + tickets["link"]
+				tickets["currency"] = self.kwargs["currency"]
 				tickets["departure_at_date"] = datetime.strptime(tickets["departure_at"],"%Y-%m-%dT%H:%M:%S%z")
 				tickets["departure_at_date"] = datetime.strftime(tickets["departure_at_date"], "%d.%m.%y")
 				if tickets["origin_airport"] == data_files["airport"][tickets["origin_airport"]]["code"]:
@@ -92,9 +94,8 @@ class FindMeTickets():
 						tickets["airline"] = data_files["airline"][tickets["airline"]]["name"]
 					else:
 						tickets["airline"] = data_files["airline"][tickets["airline"]]["name_translations"]["en"]
-				tickets_list.append(tickets["origin_city"] + " - " + tickets["destination_city"] + " " + "<a href='https://www.aviasales.ru" + tickets["link"] + "'>" + str(tickets["price"])+ "</a>" + self.kwargs["currency"] + " " + "(" + tickets["departure_at_date"] + ")" + "\n") 
-				tickets_string = " ".join(tickets_list)
-			return(tickets_string)
+				tickets_list.append(tickets)
+			return(tickets_list)
 		else:
 			print(tickets_data)
 		
