@@ -1,0 +1,4 @@
+settings.ini 
+main.py
+*.json
+__pycache__
